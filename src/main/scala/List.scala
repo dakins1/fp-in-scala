@@ -1,17 +1,7 @@
 package fpinscala.datastructures
 import scala.annotation.tailrec
 
-sealed trait MyList[+A] {
-    def name():Unit = println("bruh")
-    def length[A]():Int = this match {
-        case Nil => 0
-        case Cons(x,xs) => 1 + xs.length()
-    }
-    def sum[B >: A](implicit num: math.Numeric[B]): B = this match {
-        case Nil => 0
-        case Cons(x:B, xs:MyList[B]) => 1 + xs.sum
-    }
-}
+sealed trait MyList[+A]
 case object Nil extends MyList[Nothing]
 case class Cons[+A](head: A, tail: MyList[A]) extends MyList[A]
 
