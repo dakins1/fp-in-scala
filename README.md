@@ -11,5 +11,6 @@ scala/
 +--project/                     The rest of the sbt build
 +--src/main/scala               All sources
    +---/Main.scala              Entry point for running everything, examples of implementation
-   +---/MyList.scala            Recurisve singly linked list data structure (Ch.3)  
+   +---/MyList.scala            Recurisve singly linked list data structure (Ch.3)
+   +---/List.scala              The book's implementation of list  
 
