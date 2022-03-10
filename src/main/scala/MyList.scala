@@ -16,14 +16,8 @@ sealed trait MyList[+A] {
         _length(this)
     }
 
-    @tailrec
-    private def _foldRight[A,B](as: MyList[A], z:B)(f:(A,B)=>B):B = as match {
-            case Nil => z
-            case Cons(x,xs) => _foldRight(xs, f(x,z))(f)
-        }
-
     /**
-     * contravariance comes into play here I believe
+     * Expected to only need [A,B], but contravariance comes into play here I believe
      * definition: 
          if A is a subtype of B, then GenClass[B] is a subtype of GenClass[A]
      * If we define this func as accepting a supertype of A, then
@@ -32,8 +26,15 @@ sealed trait MyList[+A] {
          and this resolves the types needed to compile successfully
      */
     def foldRight[A1 >: A,B](z:B)(f: (A1,B) => B):B = {
+        @tailrec
+        def _foldRight[A,B](as: MyList[A], z:B)(f:(A,B)=>B):B = as match {
+            case Nil => z
+            case Cons(x,xs) => _foldRight(xs, f(x,z))(f)
+        }
         _foldRight(this, z)(f)
     }
+
+    
 
 }
 
