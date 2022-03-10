@@ -6,7 +6,11 @@ object Main extends App {
     val y = MyList(1,2,3,4)
     println(x.length)
     println(y.length)
-    println(y.foldRight(0)(_+_))
-    println(y.foldRight(1)(_*_))
+    println(x.foldRight(0)(_+_))
+    println(y.foldLeft(1)(_*_))
+
+    println(y.foldRight(Nil:MyList[Int])(Cons(_,_)))
+    println(y.foldLeft(Nil:MyList[Int])(Cons(_,_)))
+
 
 }

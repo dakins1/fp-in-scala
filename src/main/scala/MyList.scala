@@ -26,15 +26,19 @@ sealed trait MyList[+A] {
          and this resolves the types needed to compile successfully
      */
     def foldRight[A1 >: A,B](z:B)(f: (A1,B) => B):B = {
-        @tailrec
+        // @tailrec
         def _foldRight[A,B](as: MyList[A], z:B)(f:(A,B)=>B):B = as match {
             case Nil => z
-            case Cons(x,xs) => _foldRight(xs, f(x,z))(f)
+            case Cons(x,xs) => f(x, _foldRight(xs, z)(f))
         }
         _foldRight(this, z)(f)
     }
 
-    
+    @tailrec
+    final def foldLeft[A1 >: A,B](z:B)(f: (A1,B) => B):B = this match {
+            case Nil => z
+            case Cons(x,xs) => xs.foldLeft(f(x,z))(f)
+        }
 
 }
 
