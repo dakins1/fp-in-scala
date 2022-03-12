@@ -1,0 +1,5 @@
+### Design breakaways from fp in scala book
+
+In the book, the authors implement all the functions in a companion object `MyList`, and for each function you have to pass in a `MyList[A]` argument. I got really tired really quickly of passing in lists everytime I wanted to invoke a function. Furthermore, it messed with my head a little; code was harder to read as I am used to `lst.foldLeft(z)((x,y)->z)` over `MyList.foldLeft(lst, z)((x,y)->z)`. Finally, it felt dirty to me. If I am to implement my own List library, even for a book exercise, by gosh I will do it right. It felt much better to have everything defined in the `trait`. 
+
+I could have made `MyList` an abstract class instead. Indeed, this is how the standard Scala library implements their `List` class. Then, `::` and `Nil` are a case class and case object, respectively, that extend the abstract class. I've kept mine as a trait, however, just because it's a little more straightforward for something as simple as this. 
