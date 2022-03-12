@@ -15,9 +15,9 @@ sealed trait MyList[+A] {
         }
         _length(this)
     }
-
+    
     /**
-     * Expected to only need [A,B], but contravariance comes into play here I believe
+     * I expected to only need [A,B], but contravariance comes into play here (I believe)
      * definition: 
          if A is a subtype of B, then GenClass[B] is a subtype of GenClass[A]
      * If we define this func as accepting a supertype of A, then
@@ -25,20 +25,26 @@ sealed trait MyList[+A] {
          func[A1] is a subtype of func[A]
          and this resolves the types needed to compile successfully
      */
-    def foldRight[A1 >: A,B](z:B)(f: (A1,B) => B):B = {
-        // @tailrec
-        def _foldRight[A,B](as: MyList[A], z:B)(f:(A,B)=>B):B = as match {
-            case Nil => z
-            case Cons(x,xs) => f(x, _foldRight(xs, z)(f))
-        }
-        _foldRight(this, z)(f)
-    }
-
     @tailrec
     final def foldLeft[A1 >: A,B](z:B)(f: (A1,B) => B):B = this match {
             case Nil => z
             case Cons(x,xs) => xs.foldLeft(f(x,z))(f)
         }
+
+    final def reverse[A1>:A]():MyList[A1] = this.foldLeft(Nil:MyList[A1])(Cons(_,_))
+
+    final def foldRight[A1>:A,B](z:B)(f:(A1,B) => B):B = this.reverse.foldLeft(z)(f)
+
+    final def foldLeftViaFoldRight[A1>:A,B](z:B)(f:(A,B) => B):B = this.reverse.foldRight(f(this.head,z))(f)
+
+    def foldRight_nonTailRec[A1 >: A,B](z:B)(f: (A1,B) => B):B = this match {
+            case Nil => z
+            case Cons(x,xs) => f(x, xs.foldRight(z)(f))
+        }
+
+    def append[A1 >: A](as:MyList[A1]):MyList[A1] = this.foldRight(as)(Cons(_,_))
+
+    def map[A1 >: A,B](f: (A1)=>B):MyList[B] = this.foldRight(Nil:MyList[B])((x,xs) => Cons(f(x),xs))
 
 }
 
@@ -55,4 +61,9 @@ object MyList {
     def apply[A](as: A*): MyList[A] = 
         if (as.isEmpty) Nil
         else Cons(as.head, apply(as.tail: _*))
+
+    def flatten[A](lists:MyList[MyList[A]]):MyList[A] = {
+        lists.foldRight(Nil:MyList[A])((l1,l2) => l1.append(l2))
+    }
+    
 }
