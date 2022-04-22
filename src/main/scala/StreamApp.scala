@@ -1,4 +1,5 @@
 import fpinscala.streams._
+import fpinscala.mystuff.MyList
 
 object StreamApp extends App {
   // val x = Stream({println("bruh"); 1+1}, {println("bruhhh"); 2+2})
@@ -106,4 +107,52 @@ object StreamApp extends App {
 
   val p9 = Stream.tabulate(10)(s => expensive(s))
   println(p9.flatMap(x => Stream.tabulate(2)(x1 => x+x1)).toList)
+
+  val p10 = MyList(expensive(0),expensive(1),expensive(2),expensive(3),expensive(4),expensive(5))
+  println(p10.headOption_fr)
+
+  val p11 = Stream.tabulate(10)(s => expensive(s))
+  println(p11.find(_ > 5))
+
+  // infinite streams
+  val ones: Stream[Int] = Stream.cons(expensive(1), ones.map(x => {println("map: " + x); x+1})) //spooky
+  println(ones.take(5).toList)
+  val bs = Stream.constant('b')
+  println(bs.take(5).toList)
+  
+  val f = Stream.fibs.take(10)
+  println(f.toList)
+
+  println(Stream.fromViaUnfold(5).take(7).toList)
+
+  println(Stream.fibsViaUnfold.take(10).toList)
+
+  // more corecursion 
+  val t1 = Stream.tabulate(10)(s => expensive(s))
+  println(t1.mapViaUnfold(_ * 2).take(5).toList)
+  println("take via unfold")
+  println(Stream.tabulate(10)(s => expensive(s)).takeViaUnfold(5).toList)
+  println("take while via unfold")
+  println(Stream.tabulate(10)(s => expensive(s)).takeWhileViaUnfold(_ < 5).toList)
+  val t2 = Stream.tabulate(10)(s => expensive(s))
+  val t3 = Stream.tabulate(10)(s => expensive(s))
+  println(t2.zipWithViaUnfold(t3)(_+_).toList)
+  val t4 = Stream.tabulate(10)(s => expensive(s))
+  val t5 = Stream.tabulate(5)(s => expensive(s))
+  println(t5.zipAll(t4).toList)
+  val t6 = Stream.tabulate(5)(s => expensive(s))
+  println(t6.tail.toList)
+  def expensive2(n:Int) = {
+    println("exp2: " + (n+1))
+    n+1
+  }
+  val t7 = Stream.tabulate(10)(s => expensive(s))
+  val t8 = Stream.tabulate(7)(s => expensive2(s))
+  println(t7.hasSubsequence(t8))
+  println(t8.hasSubsequence(t7))
+  val t9 = Stream.tabulate(10)(s => expensive(s))
+  val t10 = Stream.tabulate(6)(s => expensive(s))
+  println(t10.hasSubsequence(t9))
+
+  
 }

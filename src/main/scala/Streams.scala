@@ -7,6 +7,11 @@ sealed trait Stream[+A] {
         case Cons(h,t) => h()::t().toList 
     }
 
+    def tail:Stream[A] = this match {
+        case Empty => throw new scala.Exception("empty list")
+        case Cons(h,t) => t()
+    }
+
     def take(n:Int):Stream[A] = this match {
         case Empty => Stream.empty
         case Cons(h, t) => 
@@ -42,12 +47,7 @@ sealed trait Stream[+A] {
     }
 
     def headOption_fr:Option[A] =
-        this.foldRight(None.asInstanceOf[Option[A]])((h,opt) =>{
-            //h is the head
-            //t is this recursive result, will traverse the entire list
-            //we really don't want to recurse at all
-            Some(h)
-        })
+        this.foldRight(None.asInstanceOf[Option[A]])((h,opt) => Some(h))
 
     def map[B](f:A => B):Stream[B] = {
         this.foldRight(Stream.empty[B])((h,t) => Stream.cons(f(h), t))
@@ -79,6 +79,78 @@ sealed trait Stream[+A] {
             else Empty
         }
     }
+
+    def find(f:A => Boolean):Option[A] =
+        this.filter(f).headOption
+        // this will break out as soon as something is found
+
+    def mapViaUnfold[S](f: A => S):Stream[S] = 
+        Stream.unfold(this)(s => s match {
+            case Empty => None
+            case Cons(h,t) => Some(f(h()) -> t() )
+        })
+    
+    def takeViaUnfold(n:Int):Stream[A] = 
+        Stream.unfold((this,0)){case (str, cnt) => {
+            if (cnt >= n) None
+            else { 
+                str match {
+                    case Empty => None
+                    case Cons(h, t) => {
+                        val state = t() -> (cnt+1)
+                        Some(h() -> state)
+                    }
+                }
+            } 
+        }}
+
+    def takeWhileViaUnfold(f:A => Boolean):Stream[A] =
+        Stream.unfold(this)(s => s match {
+            case Cons(h, t) if (f(h())) => Some(h(), t())
+            case _ => None
+        })
+    
+    def zipWithViaUnfold[B,C](s:Stream[B])(f:(A,B) => C):Stream[C] = 
+        Stream.unfold((this,s)){case (s1,s2) => (s1,s2) match {
+            case (Cons(h1,t1),Cons(h2,t2)) => Some(f(h1(),h2()) -> (t1() -> t2()))
+            case _ => None
+        }}
+
+    def zipAll[B](s2:Stream[B]):Stream[(Option[A],Option[B])] =
+        Stream.unfold((this, s2)){ case (s1, s2) => (s1,s2) match {
+            case (Cons(h1,t1),Cons(h2,t2)) => {
+                Some( (Some(h1()) -> Some(h2())) -> (t1() -> t2()) )
+            }
+            case (Cons(h1,t1),Empty) => {
+                Some( (Some(h1()) -> None) -> (t1() -> Empty) )
+            }
+            case (Empty, Cons(h2,t2)) => {
+                Some( (None -> Some(h2())) -> (Empty -> t2()) )
+            }
+            case _ => None
+        }}
+
+    def hasSubsequence[A1>:A](s2:Stream[A1]):Boolean = {
+        Stream.unfold(this)(s => s match {
+            case Empty => None
+            case Cons(h,t) => {
+                lazy val eval = Cons(h,t).zipAll(s2)//((h1,h2) => (h1->h2))
+                Some(eval -> t())
+            }
+        })
+        .map(_
+            .map(pair => (for {
+                h1 <- pair._1
+                h2 <- pair._2
+            } yield h1 == h2))
+            .takeWhile(opt => opt match {
+                case Some(x) => true
+                case None => false
+            }).forAll(_.getOrElse(false))
+        ).exists(_ == true)
+            // pair._1 == pair._2))
+    }
+
 }
 case object Empty extends Stream[Nothing]
 case class Cons[+A](h:() => A, t:() => Stream[A]) extends Stream[A]
@@ -104,7 +176,48 @@ object Stream {
         _tab(0)(f)
     }
 
+    def constant[A](a:A):Stream[A] = 
+        Stream.cons(a, constant(a))
+
+    def betterConstant[A](a:A):Stream[A] = {
+        lazy val tail:Stream[A] = Cons(() => a, () => tail)
+        tail
+    }
+
+    def from(n:Int):Stream[Int] = 
+        cons(n, from(n+1))
+
+    // there should never be an empty - that's a base case we'll never reach
+    def fibs:Stream[Int] = {
+        def _fibs(prev1:Int, prev2:Int):Stream[Int] = {
+            cons(prev1, _fibs(prev2, prev1+prev2))
+        }
+        _fibs(0,1)
+    }
+
+    // stream builder
+    // takes initial state, and a function for producing both the next state and 
+        // the next value in the generate stream
+    def unfold[A,S](z:S)(f: S => Option[(A,S)]):Stream[A] = {
+        f(z).map{case (a,s) => 
+            cons(a, unfold(s)(f))
+        }.getOrElse(empty)
+    }
+
+    def onesViaUnfold:Stream[Int] = 
+        unfold(1)(_ => Some(1, 1))
     
+    def constantViaUnfold[A](a:A) = 
+        unfold(a)(_ => Some(a, a))
+    
+    def fromViaUnfold(n:Int):Stream[Int] = 
+        unfold(n)(i => Some(i, i+1))
+
+    def fibsViaUnfold:Stream[Int] =
+        unfold((0,1)){case (x,y) => Some(x -> (y, x+y))}
+
+
+
     // I don't understand why this evaluates on construction... seems like it defeats the purpose of all this
     // Welp scala library does it the same, so obviously this is correct syntax. But wow, I reeeeaaalllly wish the author
         // had explained how #:: doesn't evalute on construction...

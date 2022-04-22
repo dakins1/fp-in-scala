@@ -46,6 +46,10 @@ sealed trait MyList[+A] {
 
     def map[A1 >: A,B](f: (A1)=>B):MyList[B] = this.foldRight(Nil:MyList[B])((x,xs) => Cons(f(x),xs))
 
+    def headOption_fr:Option[A] =
+        this.foldRight(None.asInstanceOf[Option[A]])((h,opt) => Some(h))
+
+
 }
 
 case class Cons[+A](head:A, tail:MyList[A]) extends MyList[A] {
