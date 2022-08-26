@@ -5,3 +5,4 @@ target/
 *.code-workspace
 *metals.sbt
 .vscode/
+.idea/
