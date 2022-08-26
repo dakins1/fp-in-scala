@@ -146,13 +146,19 @@ object StreamApp extends App {
     println("exp2: " + (n+1))
     n+1
   }
+  
+  val r = Stream.tabulate(10)(n => expensive(n))
+  val r2 = Stream.tabulate(5)(n => expensive(n))
+  println(r.startsWith(r2))
+  println(r2.startsWith(r))
+  println(r.startsWith(Stream.empty[Int]))
+  
   val t7 = Stream.tabulate(10)(s => expensive(s))
   val t8 = Stream.tabulate(7)(s => expensive2(s))
   println(t7.hasSubsequence(t8))
   println(t8.hasSubsequence(t7))
   val t9 = Stream.tabulate(10)(s => expensive(s))
-  val t10 = Stream.tabulate(6)(s => expensive(s))
+  val t10 = Stream.tabulate(6)(s  => expensive(s))
   println(t10.hasSubsequence(t9))
-
   
 }

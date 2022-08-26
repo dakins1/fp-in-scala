@@ -130,26 +130,23 @@ sealed trait Stream[+A] {
             case _ => None
         }}
 
-    def hasSubsequence[A1>:A](s2:Stream[A1]):Boolean = {
-        Stream.unfold(this)(s => s match {
-            case Empty => None
-            case Cons(h,t) => {
-                lazy val eval = Cons(h,t).zipAll(s2)//((h1,h2) => (h1->h2))
-                Some(eval -> t())
-            }
+    def startsWith[A1>:A](s2:Stream[A1]):Boolean = 
+        this.zipAll(s2).foldRight(true)((pair,acc) => pair match {
+            case (None, None) => true
+            case (Some(x), None) => true
+            case (None, Some(y)) => false
+            case (Some(x), Some(y)) => (x==y) && acc
         })
-        .map(_
-            .map(pair => (for {
-                h1 <- pair._1
-                h2 <- pair._2
-            } yield h1 == h2))
-            .takeWhile(opt => opt match {
-                case Some(x) => true
-                case None => false
-            }).forAll(_.getOrElse(false))
-        ).exists(_ == true)
-            // pair._1 == pair._2))
-    }
+
+    def tails:Stream[Stream[A]] =
+        Stream.unfold(this)(s => s match {
+            case Cons(h,t) => Some(Cons(h,t) -> t())
+            case Empty => None
+        })
+
+    def hasSubsequence[A1>:A](s2:Stream[A1]):Boolean = 
+        tails.exists(_.startsWith(s2))
+
 
 }
 case object Empty extends Stream[Nothing]
