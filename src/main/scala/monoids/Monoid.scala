@@ -64,15 +64,15 @@ object MonoidApp extends App {
   }
 
   // use foldMap to determine if an indexedSeq is ordered
-  def isOrdered(ints: IndexedSeq[Int]): Boolean = {
-    // make a monoid for determining order...i think
-    type Comp = Int => (Int, Boolean)
-    val ordered = new Monoid[Comp] {
-      def op(x: Comp, y: Comp): Comp = {
-        identity.compose(x)
-      }
-      val identity: Comp = i => (i, true)
-    }
-  }
+//  def isOrdered(ints: IndexedSeq[Int]): Boolean = {
+//    // make a monoid for determining order...i think
+//    type Comp = Int => (Int, Boolean)
+//    val ordered = new Monoid[Comp] {
+//      def op(x: Comp, y: Comp): Comp = {
+//        identity.compose(x)
+//      }
+//      val identity: Comp = i => (i, true)
+//    }
+//  }
 
 }

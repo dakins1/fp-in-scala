@@ -32,6 +32,18 @@ object Par {
 
     def lazyUnit[A](a: => A):Par[A] = fork(unit(a)) // derived combinator - defined in terms of other operations
 
+    def choiceN[A](n: Par[Int])(choices: List[Par[A]]): Par[A] = {
+        es =>
+            val x = (run(es)(n).get)
+            choices(x)(es)
+    }
+
+    def choice[A](cond: Par[Boolean])(t: Par[A], f: Par[A]): Par[A] = {
+        val n = map(cond)(b => if (b) 0 else 1)
+        choiceN[A](n)(List(t,f))
+    }
+
+
     // convert a function to evaluate asynchronously 
     def asyncF[A,B](f:A=>B): A => Par[B] =
         a => lazyUnit(f(a))
