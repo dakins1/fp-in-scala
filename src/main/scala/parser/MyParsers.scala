@@ -1,6 +1,6 @@
 package parser
 
-trait Parsers[ParseError, Parser[+_]] { self =>
+trait MyParsers[ParseError, Parser[+_]] { self =>
   def or[A](s1: Parser[A], s2: Parser[A]): Parser[A]
   def run[A](p: Parser[A])(input: String): Either[ParseError,A]
   def listOfN[A](n: Int, p: Parser[A]): Parser[List[A]]
