@@ -2,7 +2,7 @@ package parser
 
 import scala.util.matching.Regex
 
-trait Parsers[ParseError, Parser[+_]] {self =>
+trait Parsers[Parser[+_]] {self =>
 
   implicit def operators[A](p: Parser[A]) = ParserOps[A](p)
   implicit def regex(r: Regex): Parser[String]
@@ -78,6 +78,8 @@ trait Parsers[ParseError, Parser[+_]] {self =>
   case object Both extends Keep
   def keep[A](p1: Parser[A], p2: Parser[A])(keep: Keep): Parser[A]
 
+  def scope[A](msg: String)(p: Parser[A]): Parser[A]
+
   case class Location(input: String, offset: Int = 0) {
     lazy val line = input.slice(0, offset+1).count(_ == '\n') + 1
     lazy val col = input.slice(0, offset+1).lastIndexOf('\n') match {
@@ -88,6 +90,9 @@ trait Parsers[ParseError, Parser[+_]] {self =>
   def errorLocation(e: ParseError): Location
   def errorMessage(e: ParseError): String
 
+  case class ParseError(stack :List[(Location, String)])
+  // okay wow, when he said we don't know what ParseError will look like, he just was making that type
+  // on the fly in the parser class. It was never supposed to be some sort of parameterized type. stupid.
 
   def context[A](f: Location => A => String)(parser: Parser[A]): Parser[A]
   /* Laws
