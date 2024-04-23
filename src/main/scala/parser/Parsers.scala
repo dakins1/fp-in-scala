@@ -9,14 +9,13 @@ trait Parsers[ParseError, Parser[+_]] {self =>
   val number = "[0-9]".r
   def run[A](p: Parser[A])(input: String): Either[ParseError, A]
 
-  // Primitives
   implicit def string(s: String): Parser[String]
   implicit def char(c: Char): Parser[Char] =
     string(c.toString) map (_.charAt(0))
   def product[A,B](p: Parser[A], p1: => Parser[B]): Parser[(A,B)] =
     p.flatMap(a1 => p1.map(a2 => (a1,a2)))
+  def flatMap[A,B](p: Parser[A])(f: A => Parser[B]): Parser[B]
 
-  // Primitive Combinators
   def or[A](s1: Parser[A], s2: => Parser[A]): Parser[A]
   def many[A](a: Parser[A]): Parser[List[A]] =
     map2(a, many(a))(_ :: _) | succeed(Nil)
@@ -24,7 +23,6 @@ trait Parsers[ParseError, Parser[+_]] {self =>
   def many1[A](a: Parser[A]): Parser[List[A]]  =
     map2(a, many(a))((a,as) => a :: as)
 
-  // Combinators
   def listOfN[A](n: Int, p: Parser[A]): Parser[List[A]] = {
     if (n == 0) succeed(Nil)
     else map2(p, listOfN(n-1,p))(_ :: _)
@@ -44,8 +42,6 @@ trait Parsers[ParseError, Parser[+_]] {self =>
 
   def map2ViaFlatMap[A,B,C](p: Parser[A], p2: => Parser[B])(f: (A,B) => C): Parser[C] =
     p.flatMap(a1 => p2.map(a2 => f(a1,a2)))
-
-  def flatMap[A,B](p: Parser[A])(f: A => Parser[B]): Parser[B]
 
   def repeat[A](a: Parser[A]): Parser[List[A]] =
     number.flatMap(int => listOfN(int.toInt, a))
@@ -70,21 +66,41 @@ trait Parsers[ParseError, Parser[+_]] {self =>
     mult | one
   }
 
+  // *********** ParserError Functions ************ //
+  def label[A](msg: String)(parser: Parser[A]): Parser[A]
+  def label[A](f: A => String)(parser: Parser[A]): Parser[A]
+  def expected[A](parser: Parser[A]): Parser[A]
+  sealed trait Severity
+  def severity[A](sev: Severity)(parser: Parser[A]): Parser[A]
+  sealed trait Keep
+  case object Right extends Keep
+  case object Left extends Keep
+  case object Both extends Keep
+  def keep[A](p1: Parser[A], p2: Parser[A])(keep: Keep): Parser[A]
+
+  case class Location(input: String, offset: Int = 0) {
+    lazy val line = input.slice(0, offset+1).count(_ == '\n') + 1
+    lazy val col = input.slice(0, offset+1).lastIndexOf('\n') match {
+      case -1 => offset + 1
+      case lineStart => offset - lineStart
+    }
+  }
+  def errorLocation(e: ParseError): Location
+  def errorMessage(e: ParseError): String
+
+
+  def context[A](f: Location => A => String)(parser: Parser[A]): Parser[A]
+  /* Laws
+  run(label(s)(p(s1)))(s2) == Left(s)
+  run(label(f)(p(s1)))(s2) == Left(f(s1))
+  run(expected(p(s1)))(s2) == Left("expected s1 got s2")
+  run(context(f)(p(s1)))(s2) == Left(f(s1))
+  run(severity(lvl)(p))(s).length <= run(p)(s).length
+   */
+
   val doubleString = token("[-+]?([0-9]*\\.)?[0-9]+".r)
   val double = doubleString.map(_.toDouble)
 
-  /* Laws
-  run(string(s))(s) == Right(s)
-  map(p)(a => a) == p
-  run(succeed(a))(s) == Right(a)
-
-  Specifying behavior of product:
-    run(succeed(a) ** succeed(a))(s) == Right(a,a)
-    p1 ** p2 != p2 ** p1 if p1 != p2
-    p1 ** (p2 ** p3) == (p1 ** p2) ** p3
-    a.map(f) ** b.map(g) == (a ** b) map (case (a1,b1) => (f(a1),g(b1))
-    a.flatMap(a1 => succeed(a1)) == a
-   */
 
   implicit def asStringParser[A](a: A)(implicit f: A => Parser[String]): ParserOps[String] = ParserOps(f(a))
   implicit def asCharParser[A](a: A)(implicit f: A => Parser[Char]): ParserOps[Char] = ParserOps(f(a))
